@@ -19,19 +19,9 @@ import { homeCourseData } from '@/Data/homeData';
 
 type Theme = 'light' | 'dark';
 
-function getStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark';
-
-  try {
-    const storedTheme = window.localStorage?.getItem('ll-theme');
-    return storedTheme === 'dark' || storedTheme === 'light' ? storedTheme : 'dark';
-  } catch {
-    return 'dark';
-  }
-}
-
 export default function Home() {
-  const [theme, setTheme] = useState<Theme>(getStoredTheme);
+  const [theme, setTheme] = useState<Theme>('dark');
+  const [mounted, setMounted] = useState(false);
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isContentsOpen, setIsContentsOpen] = useState(true);
@@ -41,6 +31,18 @@ export default function Home() {
   const isDark = theme === 'dark';
 
   const navSections = getMainSidebarNavSections('/home');
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const storedTheme = window.localStorage?.getItem('ll-theme');
+      if (storedTheme === 'dark' || storedTheme === 'light') {
+        setTheme(storedTheme);
+      }
+    } catch {
+      // ignore storage access issues
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
