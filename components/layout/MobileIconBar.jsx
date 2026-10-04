@@ -17,11 +17,11 @@ export default function MobileIconBar({ theme = 'light' }) {
   return (
     <div className={`flex w-full overflow-x-auto border-b lg:hidden px-2 py-1 items-center space-x-6 shadow-sm [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${bgClass}`}>
       {items.map((item, index) => {
-        const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+        const isActive = item.href === pathname || (item.id === 'nav-home' && (pathname === '/home' || pathname === '/'));
         
         return (
           <Link
-            key={index}
+            key={item.id || index}
             href={item.href || '#'}
             className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors flex-shrink-0`}
           >

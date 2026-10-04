@@ -13,7 +13,7 @@ function matchesPathname(pathname, href) {
 }
 
 function getItemKey(item, sectionIndex, itemIndex) {
-  return item.href ?? `section-${sectionIndex}-item-${itemIndex}`;
+  return item.id ?? `${item.label ?? 'item'}-${sectionIndex}-${itemIndex}`;
 }
 
 export default function SidebarNavContent({
