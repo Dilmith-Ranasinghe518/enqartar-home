@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BookOpenIcon } from '@heroicons/react/24/solid';
 
@@ -10,27 +10,23 @@ import MobileIconBar from '@/components/layout/MobileIconBar';
 import MainSidebar, { getMainSidebarWidth } from '@/components/layout/MainSidebar';
 import { getMainSidebarNavSections } from '@/components/layout/mainSidebarNav';
 import ContentsSidebar from '@/components/layout/ContentsSidebar';
-import HeroCarousel from '@/components/HeroCarousel';
-import SubjectCarousel from '@/components/SubjectCarousel';
-import Footer from '@/components/layout/Footer';
 import MobileContentsDropdown from '@/components/MobileContentsDropdown';
-import DynamicPageConfig from '@/components/DynamicPageConfig';
-import { fetchPageConfig, PageConfig, PageItem } from '@/lib/api';
-import { allCourses } from '@/Data/data';
+import WeeklySpecialsCarousel from '@/components/WeeklySpecialsCarousel';
+import GarfieldBanner from '@/components/GarfieldBanner';
+import MovieCardGrid from '@/components/MovieCardGrid';
+import Footer from '@/components/layout/Footer';
+import { homeCourseData } from '@/Data/homeData';
 
-type CourseId = keyof typeof allCourses;
 type Theme = 'light' | 'dark';
 
-const DEFAULT_COURSE_ID: CourseId = 1;
-
 function getStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'light';
+  if (typeof window === 'undefined') return 'dark';
 
   try {
     const storedTheme = window.localStorage?.getItem('ll-theme');
-    return storedTheme === 'dark' || storedTheme === 'light' ? storedTheme : 'light';
+    return storedTheme === 'dark' || storedTheme === 'light' ? storedTheme : 'dark';
   } catch {
-    return 'light';
+    return 'dark';
   }
 }
 
@@ -39,33 +35,12 @@ export default function Home() {
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isContentsOpen, setIsContentsOpen] = useState(true);
-  const [currentLessonId, setCurrentLessonId] = useState<string | number | null>(null);
-
-  // Backend Dynamic Data State
-  const [homeConfig, setHomeConfig] = useState<PageConfig | null>(null);
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+  const [currentLessonId, setCurrentLessonId] = useState<string | number | null>('1-1');
 
   const router = useRouter();
-  const fallbackCourse = allCourses[DEFAULT_COURSE_ID];
   const isDark = theme === 'dark';
 
-  const navSections = getMainSidebarNavSections('/');
-
-  // Fetch Home Page Config from Backend
-  useEffect(() => {
-    async function loadHomeData() {
-      const data = await fetchPageConfig('home');
-      if (data) {
-        setHomeConfig(data);
-        // Default to first subject item in the main carousel section
-        const firstSection = data.sections?.find((s) => s.isVisible);
-        if (firstSection && firstSection.items?.length > 0) {
-          setSelectedSubjectId(firstSection.items[0].id);
-        }
-      }
-    }
-    loadHomeData();
-  }, []);
+  const navSections = getMainSidebarNavSections('/home');
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -90,56 +65,6 @@ export default function Home() {
     return () => mediaQuery.removeEventListener('change', closeDrawer);
   }, [isSidebarOpen]);
 
-  // Extract Carousel Section Items (Subjects)
-  const carouselSection = useMemo(() => {
-    if (!homeConfig) return null;
-    return homeConfig.sections?.find((s) => s.isVisible);
-  }, [homeConfig]);
-
-  const subjectItems = useMemo(() => {
-    if (!carouselSection) return [];
-    return carouselSection.items?.filter((i) => i.isVisible) || [];
-  }, [carouselSection]);
-
-  // Find currently selected subject item
-  const selectedSubjectItem = useMemo<PageItem | null>(() => {
-    if (!subjectItems || subjectItems.length === 0) return null;
-    return subjectItems.find((i) => i.id === selectedSubjectId) || subjectItems[0];
-  }, [subjectItems, selectedSubjectId]);
-
-  // Convert selected subject item chapters to course object format for ContentsSidebar
-  const activeCourse = useMemo(() => {
-    if (!selectedSubjectItem || !selectedSubjectItem.chapters || selectedSubjectItem.chapters.length === 0) {
-      return fallbackCourse;
-    }
-    return {
-      id: selectedSubjectItem.id,
-      title: selectedSubjectItem.title,
-      chapters: selectedSubjectItem.chapters.map((ch, chIdx) => ({
-        id: ch.id || chIdx + 1,
-        title: ch.title,
-        lessons: (ch.lessons || []).map((les, lesIdx) => ({
-          id: les.id || `les-${chIdx}-${lesIdx}`,
-          lessonNumber: les.lessonNumber,
-          title: les.title,
-          duration: les.duration || '',
-          completed: les.completed || false,
-        })),
-      })),
-    };
-  }, [selectedSubjectItem, fallbackCourse]);
-
-  const handleSelectSubject = (item: PageItem) => {
-    setSelectedSubjectId(item.id);
-    setIsContentsOpen(true);
-    setIsSidebarOpen(true);
-  };
-
-  const handleNavigate = (href?: string) => {
-    if (!href) return;
-    router.push(href);
-  };
-
   const navWidth = getMainSidebarWidth({ isCollapsed: isNavCollapsed });
 
   const openContents = () => {
@@ -152,6 +77,7 @@ export default function Home() {
       className={`flex h-dvh flex-col overflow-hidden ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-[#f3f4f3] text-slate-900'}`}
       style={{ '--main-sidebar-width': `${navWidth}px` } as React.CSSProperties}
     >
+      {/* Top sticky header area */}
       <div className="sticky top-0 z-40 flex flex-shrink-0 flex-col">
         <MainHeader
           onOpenMobileNav={() => setIsSidebarOpen(true)}
@@ -162,29 +88,30 @@ export default function Home() {
         <SolutionsBar theme={theme} />
       </div>
 
+      {/* Main app body */}
       <div className="flex flex-col lg:flex-row min-h-0 flex-1 overflow-hidden transition-[padding] duration-300 lg:pl-[var(--main-sidebar-width)]">
         <MainSidebar
           navSections={navSections}
           isCollapsed={isNavCollapsed}
           onToggleCollapse={() => setIsNavCollapsed((prev) => !prev)}
           theme={theme}
-          onNavigate={handleNavigate}
+          onNavigate={(href: string) => href && router.push(href)}
         />
 
         <div className={`flex min-h-0 flex-1 overflow-hidden ${isDark ? 'bg-slate-950' : 'bg-[#eff3f2]'}`}>
-          {/* Contents Sidebar Column */}
+          {/* Contents Sidebar Drawer */}
           <aside
-            className={`hidden min-h-0 flex-shrink-0 overflow-hidden border-y border-r border-black/10 bg-[#2f3640] shadow-[0_20px_40px_rgba(15,23,42,0.14)] transition-[width,opacity] duration-300 lg:block ${
+            className={`hidden min-h-0 flex-shrink-0 overflow-hidden border-y border-r border-black/15 bg-[#252b35] shadow-[0_20px_40px_rgba(15,23,42,0.18)] transition-[width,opacity] duration-300 lg:block ${
               isContentsOpen
-                ? 'w-[340px] rounded-r-[12px] opacity-100 xl:w-[420px] 2xl:w-[520px]'
+                ? 'w-[320px] rounded-r-[12px] opacity-100 xl:w-[380px] 2xl:w-[440px]'
                 : 'w-0 border-0 opacity-0'
             }`}
             aria-hidden={!isContentsOpen}
           >
-            <div className="h-full w-[340px] xl:w-[420px] 2xl:w-[520px]">
+            <div className="h-full w-[320px] xl:w-[380px] 2xl:w-[440px]">
               <ContentsSidebar
-                course={activeCourse}
-                currentLessonId={currentLessonId as any}
+                course={homeCourseData}
+                currentLessonId={currentLessonId}
                 onSelectLesson={setCurrentLessonId}
                 onClose={() => setIsContentsOpen(false)}
                 theme="dark"
@@ -192,9 +119,9 @@ export default function Home() {
             </div>
           </aside>
 
-          {/* Main Column */}
+          {/* Main Scrollable Area */}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-            <main className="min-w-0 flex-1 space-y-5 px-4 py-4 sm:px-5 lg:px-6 lg:py-5">
+            <main className="min-w-0 flex-1 space-y-6 px-4 py-4 sm:px-5 lg:px-6 lg:py-5">
               <button
                 type="button"
                 onClick={openContents}
@@ -203,28 +130,33 @@ export default function Home() {
                 }`}
               >
                 <BookOpenIcon className="h-4 w-4" />
-                Open contents ({selectedSubjectItem?.title || 'Subject'})
+                Open contents
               </button>
 
               <MobileContentsDropdown
-                course={activeCourse}
-                currentLessonId={currentLessonId as any}
-                setCurrentLessonId={setCurrentLessonId as any}
+                course={homeCourseData}
+                currentLessonId={currentLessonId}
+                setCurrentLessonId={(id: any) => setCurrentLessonId(id)}
                 isDark={isDark}
               />
 
-              <HeroCarousel />
+              {/* 1. Top Section: Weekly Specials $4.99 movies */}
+              <WeeklySpecialsCarousel />
 
-              {/* Subject Carousel Managed from Admin Panel */}
-              <SubjectCarousel
-                title={carouselSection?.title || 'Weekly specials: $4.99 movies'}
-                subtitle={carouselSection?.subtitle || 'New top deals refreshed every Tuesday'}
-                items={subjectItems}
-                selectedSubjectId={selectedSubjectId || undefined}
-                onSelectSubject={handleSelectSubject}
-              />
+              {/* 2. Garfield Banner #1 */}
+              <GarfieldBanner />
 
-              <DynamicPageConfig slug="home" />
+              {/* 3. Movie Card Grid #1 */}
+              <MovieCardGrid />
+
+              {/* 4. Garfield Banner #2 */}
+              <GarfieldBanner />
+
+              {/* 5. Movie Card Grid #2 */}
+              <MovieCardGrid />
+
+              {/* 6. Garfield Banner #3 */}
+              <GarfieldBanner />
             </main>
 
             <Footer />
@@ -232,22 +164,22 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer for Contents Sidebar */}
       <div className="lg:hidden">
         <div
-          className={`fixed inset-0 z-50 bg-slate-950/55 transition-opacity duration-300 ${
+          className={`fixed inset-0 z-50 bg-slate-950/60 transition-opacity duration-300 ${
             isSidebarOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
           }`}
           onClick={() => setIsSidebarOpen(false)}
         />
         <div
-          className={`fixed bottom-0 left-0 top-0 z-[60] w-[520px] max-w-[94%] transform transition-transform duration-300 ${
+          className={`fixed bottom-0 left-0 top-0 z-[60] w-[360px] max-w-[90%] transform transition-transform duration-300 ${
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
           <ContentsSidebar
-            course={activeCourse}
-            currentLessonId={currentLessonId as any}
+            course={homeCourseData}
+            currentLessonId={currentLessonId}
             onSelectLesson={(lessonId: any) => {
               setCurrentLessonId(lessonId);
               setIsSidebarOpen(false);
