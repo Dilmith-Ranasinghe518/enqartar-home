@@ -14,7 +14,6 @@ import MobileContentsDropdown from '@/components/MobileContentsDropdown';
 import WeeklySpecialsCarousel from '@/components/WeeklySpecialsCarousel';
 import GarfieldBanner from '@/components/GarfieldBanner';
 import MovieCardGrid from '@/components/MovieCardGrid';
-import Footer from '@/components/layout/Footer';
 import { homeCourseData } from '@/Data/homeData';
 
 type Theme = 'light' | 'dark';
@@ -160,8 +159,6 @@ export default function Home() {
               {/* 6. Garfield Banner #3 */}
               <GarfieldBanner />
             </main>
-
-            <Footer />
           </div>
         </div>
       </div>
